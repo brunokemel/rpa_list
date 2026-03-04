@@ -34,22 +34,28 @@ wait.until(
     EC.presence_of_element_located((By.NAME, "tbCategorias_length"))
     )
 
-# altera a option 100 para 1000
+# altera a option 100 para 3000
 #var select puxa no primeiro iframe o elemento select que contem "name=tbCategorias_length"
 navegador.execute_script("""
 var select = document.getElementsByName('tbCategorias_length')[0];
 var option = select.querySelector("option[value='100']");
 
-option.value = "1000";
-option.text = "1000";
+option.value = "3000";
+option.text = "3000";
 
-select.value = "1000";
+select.value = "3000";
 select.dispatchEvent(new Event('change'));
 """)
 
+#acessa o botao de visualizar variacoes de cada categoria
+botao = wait.until(
+    EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn-round.btn-sm.btn-success"))
+    )
+
+botao.click()
 
 
-time.sleep(2)
+time.sleep(10)
 
 
 
