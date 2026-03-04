@@ -24,16 +24,30 @@ navegador.get("https://cremesp.org.br/?siteAcao=cid10")
 
 wait = WebDriverWait(navegador, 20)
 
-# navegador.switch_to.default_content()
+
 #entrada do iframe
 iframes = navegador.find_elements(By.TAG_NAME, "iframe")
 navegador.switch_to.frame(iframes[0])
 
-selecet_element = wait.until(
-    EC.element_to_be_clickable((By.NAME, "tbCategorias_length"))
+#espera explicita do elemnto
+wait.until(
+    EC.presence_of_element_located((By.NAME, "tbCategorias_length"))
     )
 
-select = Select(selecet_element).select_by_value("100")
+# altera a option 100 para 1000
+#var select puxa no primeiro iframe o elemento select que contem "name=tbCategorias_length"
+navegador.execute_script("""
+var select = document.getElementsByName('tbCategorias_length')[0];
+var option = select.querySelector("option[value='100']");
+
+option.value = "1000";
+option.text = "1000";
+
+select.value = "1000";
+select.dispatchEvent(new Event('change'));
+""")
+
+
 
 time.sleep(2)
 
