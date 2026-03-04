@@ -8,6 +8,9 @@ from selenium.webdriver.support.ui import Select
 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import string
+from selenium.common.exceptions import NoSuchElementException
+import re 
 
 
 
@@ -54,5 +57,47 @@ botao = wait.until(
 
 botao.click()
 
+padrao_categoria = r"^[A-Z]\d{2}$"
+padrao_subcategoria = r"^[A-Z]\d{3}$"
+
+linhas = navegador.find_elements(By.CSS_SELECTOR, "table tbody tr")
+
+for linha in linhas:
+    colunas = linha.find_elements(By.TAG_NAME, "td")
+
+    if len(colunas) >= 2:
+        codigo = colunas[0].get_attribute("innerText").strip()
+        descricao = colunas[1].get_attribute("innerText").strip()
+
+        classes = colunas[0].get_attribute("class")
+    
+    # Se tiver classe dtr-control → é categoria (A00)
+        if classes and "dtr-control" in classes:
+
+            print(f"\nCódigo: {codigo}")
+            print(f"Descrição: {descricao}")
+            print("-" * 40)
+
+        # Senão → é subcategoria (A000)
+        else:
+
+            print(f"   Código: {codigo}")
+            print(f"   Descrição: {descricao}")
+            print("   " + "-" * 36)
+    
+
 time.sleep(10)
 
+
+# for letra in string.ascii_uppercase:  # A até Z
+#     for numero in range(100):         # 00 até 99
+#         codigo = f"{letra}{numero:02d}"  # Formata 00, 01, 02...
+
+#         try:
+#             elemento = navegador.find_element(By.ID, codigo)  # exemplo
+#             print(f"Encontrado: {codigo}")
+            
+#             # Aqui você faz a raspagem
+            
+#         except:
+#             continue
