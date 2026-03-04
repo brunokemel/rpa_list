@@ -4,89 +4,84 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import string
-from selenium.common.exceptions import NoSuchElementException
-import re 
-
-
+import json
 
 navegador = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-
-# abrir navegador em full size
 navegador.maximize_window()
-
-# acessar o site
 navegador.get("https://cremesp.org.br/?siteAcao=cid10")
-
-#timer teste
-# time.sleep(1)
 
 wait = WebDriverWait(navegador, 20)
 
+# entra no iframe pelo id
+iframe = wait.until(
+    EC.presence_of_element_located((By.ID, "fraIncludePaginaResponsivel"))
+)
+navegador.switch_to.frame(iframe)
 
-#entrada do iframe
-iframes = navegador.find_elements(By.TAG_NAME, "iframe")
-navegador.switch_to.frame(iframes[0])
-
-#espera explicita do elemnto
+# espera o select aparecer
 wait.until(
     EC.presence_of_element_located((By.NAME, "tbCategorias_length"))
-    )
+)
 
-# altera a option 100 para 3000
-#var select puxa no primeiro iframe o elemento select que contem "name=tbCategorias_length"
+# altera o select para 3000 registros
 navegador.execute_script("""
 var select = document.getElementsByName('tbCategorias_length')[0];
 var option = select.querySelector("option[value='100']");
-
 option.value = "3000";
 option.text = "3000";
-
 select.value = "3000";
 select.dispatchEvent(new Event('change'));
 """)
 
-#acessa o botao de visualizar variacoes de cada categoria
-botao = wait.until(
-    EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn-round.btn-sm.btn-success"))
-    )
+# espera carregar todas as linhas
+wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')))
+linhas = navegador.find_elements(By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')
+print(f"Total de linhas: {len(linhas)}")
 
-botao.click()
+dados_tabela = []
 
-padrao_categoria = r"^[A-Z]\d{2}$"
-padrao_subcategoria = r"^[A-Z]\d{3}$"
-
-linhas = navegador.find_elements(By.CSS_SELECTOR, "table tbody tr")
-
-for linha in linhas:
-    colunas = linha.find_elements(By.TAG_NAME, "td")
-
-    if len(colunas) >= 2:
-        codigo = colunas[0].get_attribute("innerText").strip()
-        descricao = colunas[1].get_attribute("innerText").strip()
-
-        classes = colunas[0].get_attribute("class")
+for i, linha in enumerate(linhas, start=1):
+    codigo = linha.find_element(By.XPATH, './td[1]').text.strip()
+    descricao = linha.find_element(By.XPATH, './td[2]').text.strip()
     
-    # Se tiver classe dtr-control → é categoria (A00)
-        if classes and "dtr-control" in classes:
+    # Clica no botão visualizar
+    botao_visualizar = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tbCategorias"]/tbody/tr[1]/td[3]/button')))
+    botao_visualizar.click()
 
-            print(f"\nCódigo: {codigo}")
-            print(f"Descrição: {descricao}")
-            print("-" * 40)
-
-        # Senão → é subcategoria (A000)
-        else:
-
-            print(f"   Código: {codigo}")
-            print(f"   Descrição: {descricao}")
-            print("   " + "-" * 36)
     
+    # Espera a tabela de derivações aparecer
+    wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tabela_body"]/tr')))
+    linhas_detalhe = navegador.find_elements(By.XPATH, '//*[@id="tabela_body"]/tr')
+    
+    derivacoes = []
+    for detalhe in linhas_detalhe:
+        deriv_codigo = detalhe.find_element(By.XPATH, './td[1]').text.strip()
+        deriv_desc = detalhe.find_element(By.XPATH, './td[2]').text.strip()
+        derivacoes.append(f"{deriv_codigo} - {deriv_desc}")
+    
+    # Monta string única com principais + derivações
+    registro = f"{codigo} - {descricao}\n    Derivações:\n    " + "\n    ".join(derivacoes)
+    dados_tabela.append(registro)
+    print(registro)
+    
+    # Clica no botão voltar
+    botao_voltar = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="btnVoltarTbListCategorias"]')))
+    botao_voltar.click()
 
-time.sleep(10)
+    
+    # Recarrega as linhas da tabela principal
+    wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')))
+    linhas = navegador.find_elements(By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')
+
+# Agora 'dados_tabela' é uma lista de strings
+resultado_final = "\n\n".join(dados_tabela)
+print(resultado_final)
+
+time.sleep(5)
+
+
 
 
 # for letra in string.ascii_uppercase:  # A até Z
