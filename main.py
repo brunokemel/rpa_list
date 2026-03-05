@@ -6,7 +6,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import json
+from selenium.common.exceptions import TimeoutException
 
 navegador = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 navegador.maximize_window()
@@ -46,32 +46,42 @@ for i, linha in enumerate(linhas, start=1):
     codigo = linha.find_element(By.XPATH, './td[1]').text.strip()
     descricao = linha.find_element(By.XPATH, './td[2]').text.strip()
     
-    # Clica no botão visualizar
-    botao_visualizar = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tbCategorias"]/tbody/tr[1]/td[3]/button')))
-    botao_visualizar.click()
+    # botão da linha atual
+    botao_visualizar = wait.until(
+        EC.element_to_be_clickable(
+            (By.XPATH, f'//*[@id="tbCategorias"]/tbody/tr[{i}]/td[3]/button')
+        )
+    )
 
-    
-    # Espera a tabela de derivações aparecer
-    wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tabela_body"]/tr')))
+    # rola até o botão antes de clicar
+    navegador.execute_script("arguments[0].scrollIntoView(true);", botao_visualizar)
+
+    # tenta clicar e esperar a tabela de derivações
+    try:
+        navegador.execute_script("arguments[0].click();", botao_visualizar)
+        wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tabela_body"]/tr')))
+    except TimeoutException:
+        print(f"Falha ao carregar derivações da linha {i}, tentando novamente...")
+        navegador.execute_script("arguments[0].click();", botao_visualizar)
+        wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tabela_body"]/tr')))
+
+    # coleta os detalhes
     linhas_detalhe = navegador.find_elements(By.XPATH, '//*[@id="tabela_body"]/tr')
-    
     derivacoes = []
     for detalhe in linhas_detalhe:
         deriv_codigo = detalhe.find_element(By.XPATH, './td[1]').text.strip()
         deriv_desc = detalhe.find_element(By.XPATH, './td[2]').text.strip()
         derivacoes.append(f"{deriv_codigo} - {deriv_desc}")
     
-    # Monta string única com principais + derivações
     registro = f"{codigo} - {descricao}\n    Derivações:\n    " + "\n    ".join(derivacoes)
     dados_tabela.append(registro)
     print(registro)
     
-    # Clica no botão voltar
+    # botão voltar
     botao_voltar = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="btnVoltarTbListCategorias"]')))
     botao_voltar.click()
-
     
-    # Recarrega as linhas da tabela principal
+    # recarrega tabela principal
     wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')))
     linhas = navegador.find_elements(By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')
 
@@ -82,7 +92,7 @@ print(resultado_final)
 time.sleep(5)
 
 
-
+##try Cat
 
 # for letra in string.ascii_uppercase:  # A até Z
 #     for numero in range(100):         # 00 até 99
