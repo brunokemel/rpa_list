@@ -6,13 +6,13 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 navegador = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 navegador.maximize_window()
 navegador.get("https://cremesp.org.br/?siteAcao=cid10")
 
-wait = WebDriverWait(navegador, 20)
+wait = WebDriverWait(navegador, 0.5)  # tempo de espera reduzido para acelerar o processo / trocar wait por algo mais rápido e diminuir tempo de processo
 
 # entra no iframe pelo id
 iframe = wait.until(
@@ -24,6 +24,10 @@ navegador.switch_to.frame(iframe)
 wait.until(
     EC.presence_of_element_located((By.NAME, "tbCategorias_length"))
 )
+
+# iframe = driver.find_element(By.ID, "fraIncludePaginaResponsivel")
+# navegador.switch_to.frame(iframe)
+
 
 # altera o select para 3000 registros
 navegador.execute_script("""
@@ -78,9 +82,18 @@ for i, linha in enumerate(linhas, start=1):
     print(registro)
     
     # botão voltar
-    botao_voltar = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="btnVoltarTbListCategorias"]')))
-    botao_voltar.click()
-    
+    botao_voltar = navegador.find_element(By.XPATH, '//*[@id="btnVoltarTbListCategorias"]')
+    navegador.execute_script("arguments[0].click();", botao_voltar)
+
+    try:
+        botao_voltar = wait.until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="btnVoltarTbListCategorias"]'))
+        )
+        botao_voltar.click()
+    except TimeoutException:
+        print("Botão voltar não está disponível nesta tela.")
+
+
     # recarrega tabela principal
     wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')))
     linhas = navegador.find_elements(By.XPATH, '//*[@id="tbCategorias"]/tbody/tr')
@@ -90,19 +103,3 @@ resultado_final = "\n\n".join(dados_tabela)
 print(resultado_final)
 
 time.sleep(5)
-
-
-##try Cat
-
-# for letra in string.ascii_uppercase:  # A até Z
-#     for numero in range(100):         # 00 até 99
-#         codigo = f"{letra}{numero:02d}"  # Formata 00, 01, 02...
-
-#         try:
-#             elemento = navegador.find_element(By.ID, codigo)  # exemplo
-#             print(f"Encontrado: {codigo}")
-            
-#             # Aqui você faz a raspagem
-            
-#         except:
-#             continue
